@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-# c2
-Click 2 experience the magic of our AI
-=======
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
