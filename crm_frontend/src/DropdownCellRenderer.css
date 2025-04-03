@@ -1,0 +1,28 @@
+/* DropdownCellRenderer.css */
+.dropdown-cell-renderer {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .dropdown-cell-renderer button {
+    cursor: pointer;
+  }
+  
+  .dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    z-index: 1000;
+  }
+  
+  .dropdown-option {
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  
+  .dropdown-option:hover {
+    background-color: #f0f0f0;
+  }
+  

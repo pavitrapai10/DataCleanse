@@ -1,0 +1,17 @@
+{
+    "leads": [
+      { "id": 1, "name": "John Doe", "email": "john@example.com", "phone": "555-1234" },
+      { "id": 2, "name": "Jane Smith", "email": "jane@example.com", "phone": "555-5678" },
+      { "id": 3, "name": "Bob Johnson", "email": "bob@example.com", "phone": "555-9012" }
+    ],
+    "accounts": [
+      { "id": 1, "name": "Acme Inc.", "industry": "Manufacturing", "location": "New York" },
+      { "id": 2, "name": "Globex Corp.", "industry": "Technology", "location": "San Francisco" },
+      { "id": 3, "name": "Stark Industries", "industry": "Energy", "location": "Los Angeles" }
+    ],
+    "opportunities": [
+      { "id": 1, "name": "New Product Launch", "account": "Acme Inc.", "value": 100000 },
+      { "id": 2, "name": "Business Expansion", "account": "Globex Corp.", "value": 250000 },
+      { "id": 3, "name": "Technology Upgrade", "account": "Stark Industries", "value": 75000 }
+    ]
+  }

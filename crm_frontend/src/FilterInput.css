@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
+
+
+.filter-container {
+    position: relative;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: height 0.3s ease;
+    overflow: hidden;
+    background-color: #ffffff; /* Background color to match image 2 */
+}
+
+.filter-container.expanded {
+    height: 200px; /* Adjust height as needed for expansion */
+}
+
+.titlesection {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    outline:0px;
+    padding:6px 3px;
+    border:0px;
+    width: 100%;
+    font-family: system-ui;
+      font-weight: 600;
+  
+  }
+.logo-image {
+    width: 60px; /* Adjust size as needed */
+    height: auto;
+}
+.input-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px; /* Adjust width as needed */
+}
+.input-wrapper {
+    position: relative;
+}
+
+.prompt-input {
+    width: 100%;
+    padding: 10px 40px 10px 10px; /* Add padding-right for mic icon space */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+.mic-button {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.expand-text {
+  text-align: center;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  margin-top: 20px; /* Adjust as needed for spacing */
+  font-size: 1.8rem; /* Adjust font size as needed */
+  font-family: "Comfortaa", sans-serif;
+  /* Add other styles if necessary */
+}
+
+.filter-container.expanded .expand-text {
+    opacity: 1;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    transition: opacity 0.3s ease;
+    margin-top: 0px; /* Add margin-top to separate from expand text */
+}
+
+.prompt-input[type="text"] {
+    flex-grow: 1;
+    padding: 10px 10px 10px 50px; /* Adjust padding to add space on the left */
+    margin-right: 10px;
+    margin-right: 10px;
+    font-size: 16px; /* Increase font size */
+    border-radius: 80px; /* Adjust this value to control the roundness */
+    width: 700px;
+    height: 60px;
+    border: 1px solid #ccc; /* Optional: to define the border style */
+}
+
+
+button {
+    padding: 10px 20px; /* Add padding to button */
+    font-size: 16px; /* Increase font size */
+}
+
+.expand-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
+

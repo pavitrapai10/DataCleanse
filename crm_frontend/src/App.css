@@ -1,0 +1,311 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
+
+/* App.css */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full height of the viewport */
+  background-color: #ffffff;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.filter-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  border-radius: 10px; /* Rounded edges */
+}
+
+/* Additional styles for the input and button */
+.filter-container input {
+  padding: 8px 12px;
+  height: 5vh;
+  margin-right: 10px;
+  font-size: 14px;
+  border: 1px solid #d8dde6;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.filter-container input:focus {
+  border-color: #6f7275;
+}
+
+.filter-container button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #000000;
+  color: #fff;
+  border: none;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.filter-container button:hover {
+  background-color: #4f5152;
+}
+.pink-line{
+  background-color: #dd99a8;
+  height: 1px;
+  margin-left: 7px;
+  margin-right: 7px;
+}
+.tab-container {
+  background-color: #f3f3f3;
+  display: flex;
+  height: 50px;
+  align-items: center;
+  justify-content: center; /* Center tabs horizontally */
+  margin: 2px;
+  margin-bottom: 0px; /* Remove margin to connect tabs and grid */
+  padding-left:10px;
+  border-top-left-radius: 10px; /* Rounded edges */
+  border-top-right-radius: 10px; /* Rounded edges */
+  border-bottom-left-radius: 10px; /* Rounded edges */
+  border-bottom-right-radius: 10px; /* Rounded edges */
+
+}
+.tab-columns {
+  display: flex;
+  align-items: center;
+}
+.tab-button {
+  padding: 8px 35px; /* Adjusted padding for increased width */
+  background-color: #dddddd;
+  border: 1px solid #eeeeee;   /* Add black border */
+  border-radius: 3px; /* Rounded edges */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: "Comfortaa", sans-serif;
+  font-size: 14px; /* Adjust font size */
+  /*margin: 0 px;  Add margin between buttons */
+  margin-left: 1px;  /*Add margin between buttons */
+  height: 85%; /* Set height to 100% to match parent div's height */
+}
+.tab-button:hover {
+  background-color: #ccc; /* Change background color on hover */
+}
+
+.tab-button.active, .tab-button.active:hover {
+  background-color: #4b4c4d; /* Active tab background color */
+  color: #fff !important; /* Active tab text color */
+  border-color: #fbfdff; /* Active tab border color */
+  font-weight: bold; /* Optional: Make the text bold */
+}
+
+.grid-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 82vh; /* Adjust height to fill the available space */
+  background-color: #fff;
+  margin: 0; /* Ensure no margin */
+  padding: 0; /* Remove padding */
+  border-top-left-radius: 10px; /* Rounded edges */
+  border-top-left-radius: 10px; /* Rounded edges */
+  border-bottom-left-radius: 10px; /* Rounded edges */
+  border-bottom-right-radius: 10px; /* Rounded edges */
+}
+
+.ag-theme-quartz {
+  flex: 1; /* Make the grid take up remaining space */
+  border-radius: 10px; /* Rounded edges */
+}
+
+.ag-body-viewport {
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+.control-panel {
+  display: flex;
+  align-items: center; /* Align items vertically */
+  gap: 10px; /* Add gap between the button container and dropdown container */
+  margin-bottom: 10px;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.button-container {
+  display: flex;
+  gap: 4px;
+  border-radius: 5px; /* Rounded edges */
+}
+
+.dropdown-container {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  gap: 2px;
+  border-radius: 5px; /* Rounded edges */
+}
+
+.grey-button {
+  /* Your existing styles */
+  padding: 10px 5px;
+  background-color:  #e0e0e0;
+  border: 1px solid #f4f1f1;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: "Comfortaa", sans-serif;
+  font-size: 14px;
+}
+
+.grey-button:hover {
+  background-color: #c5c7ca; /* Darker grey on hover */
+  color: #333; /* Darker text color on hover */
+  position: relative;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+  border-radius: 5px; /* Rounded edges */
+}
+
+.dropbtn {
+  background-color: #f9f9f9;
+  color: black;
+  padding: 4px;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px; /* Rounded edges */
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(36, 35, 35, 0.2);
+  z-index: 1;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.dropdown-content label {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.dropdown-content label:hover {
+  background-color: #f1f1f1;
+}
+
+.dropdown-content label input[type="checkbox"] {
+  filter: grayscale(100%);
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background-color: #f1f1f1;
+}
+
+.icon {
+  width: 25px;
+  height: 25px;
+  margin-left: 5px;
+}
+
+.cell-content {
+  display: flex;
+  align-items: center;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.parent-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between; /* Optionally, add some spacing between the containers */
+  border-radius: 10px; /* Rounded edges */
+}
+
+.search-container {
+  background-color: #f4f5f7; /* Notion's search container background color */
+  border: 1px solid #ccc; /* Notion's search container border color */
+  border-radius: 8px; /* Rounded edges */
+  padding: 6px 12px; /* Padding for content inside the search container */
+  display: flex;
+  align-items: center; /* Align items vertically */
+}
+
+.search-container input {
+  flex: 1; /* Take up remaining space */
+  border: none; /* Remove input border */
+  outline: none; /* Remove input outline */
+  background-color: transparent; /* Transparent background */
+  font-size: 14px; /* Font size */
+}
+
+.search-container input::placeholder {
+  color: #999; /* Placeholder text color */
+}
+
+.search-container button {
+  background-color: transparent; /* Transparent background */
+  border: none; /* Remove button border */
+  outline: none; /* Remove button outline */
+  cursor: pointer;
+  margin-left: 8px; /* Spacing between input and button */
+}
+.left-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Align items to the right */
+  margin-left: auto; /* Ensure the entire container is pushed to the right */
+  border-radius: 10px; /* Rounded edges */
+}
+
+.left-controls > * {
+  margin-right: 10px; /* Adjust the spacing between buttons as needed */
+}
+
+.left-controls button {
+  background-color: #e0e0e0; /* Salesforce primary button color */
+  color: #000000; /* Text color */
+  border: 1px solid #fffcfc; /* Add border */
+  border-radius: 5px; /* Rounded edges */
+  padding: 8px 16px; /* Padding */
+  font-size: 14px; /* Font size */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.left-controls button:hover {
+  background-color: #918e8e; /* Darker shade on hover */
+}
+.field-selection {
+  display: inline-block; /* Display the dropdown inline with buttons */
+  border-radius: 10px; /* Rounded edges */
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  border-radius: 10px; /* Rounded edges */
+}
+
+.loading-spinner {
+  width: 50px; /* Adjust the size as needed */
+  height: 50px; /* Adjust the size as needed */
+  border-radius: 50%; /* Make it fully rounded */
+}
