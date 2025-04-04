@@ -810,64 +810,47 @@ const handleFilterQueryChange = (event) => {
 };
 
 const onSearchTextChange = (event) => {
-  // const searchText = event.target.value.toLowerCase();
   const searchText = event.target.value.toString().toLowerCase();
   setSearchText(searchText);
-
-
   if (gridApi) {
     const searchTerms = searchText.split(',')
       .map(term => term.trim())
-      .filter(term => term.length >= 2); // Only keep terms with at least 2 characters
-
+      .filter(term => term.length >= 1); // Only keep terms with at least 2 characters
+    
     if (searchTerms.length > 0) {
       const quickFilterText = searchTerms.join(' ');
-      gridApi.setQuickFilter(quickFilterText);
-
-      // const columnDefs = gridApi.getColumnDefs();
-
-      // console.log("------",columnDefs);
+      // Fixed method: use setGridOption instead of setQuickFilter
+      gridApi.setGridOption("quickFilterText", quickFilterText);
+      
       const newVisibleColumns = { ...visibleColumns };
       const newSelectedFields = [...selectedFields];
-
-       availableFields.forEach((field) => {
+       
+      availableFields.forEach((field) => {
         let columnContainsSearchTerm = false;
-
         gridApi.forEachNode((node) => {
+          if (!node.data || !field) return; // Add null check as in working code
           const cellData = node.data[field] ? node.data[field].toString().toLowerCase() : '';
           
           if (searchTerms.some(term => cellData.includes(term))) {
             columnContainsSearchTerm = true;
           }
         });
-
-        if (columnContainsSearchTerm) {
-          newVisibleColumns[field] = true;
-          gridApi.setColumnVisible(field, true);
-          if (!newSelectedFields.includes(field)) {
-            newSelectedFields.push(field);
-          }
-        }
+        
       });
+      
       setVisibleColumns(newVisibleColumns);
-            setSelectedFields(newSelectedFields);
-
+      setSelectedFields(newSelectedFields);
       syncDropdownStateWithColumnVisibility();
-// console.log(newVisibleColumns,"NEW VISIBLE COLS")
-
     } else {
-      gridApi.setQuickFilter('');
+      // Fixed method: use setGridOption instead of setQuickFilter
+      gridApi.setGridOption("quickFilterText", "");
     }
-
+    
     syncDropdownStateWithColumnVisibility();
   }
-
-  // Toggle a specific column's visibility after the search text changes
-  const specificColumn = ''; // Replace with the column ID you want to toggle
-  handleFieldSelection(specificColumn);
-  //console.log(specificColumn,"SpecificCols")
+  
+  // Removed problematic toggle section
 };
-
 const syncDropdownStateWithColumnVisibility = () => {
   const columnState = gridApi.getColumnState();
   const updatedDropdownOptions = columnState.map(col => ({
