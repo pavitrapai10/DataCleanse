@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef,useCallback } from 'react';
+import React, { useState, useEffect, useRef,useCallback ,useMemo} from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import HoverDeleteCellRenderer from './buttons/delete';
 import MaximizeButtonCellRenderer from './MaximizeButtonCellRenderer';
@@ -7,19 +7,92 @@ import { Dropdown } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import Overlay from './overlays/Overlay';
 import FilterInput from './filterInput';
-import { ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
-import { AllEnterpriseModule, LicenseManager } from 'ag-grid-enterprise';
 import { themeBalham } from 'ag-grid-community';
 
+// Import AG Grid Community modules
+import { 
+  ModuleRegistry, 
+  ClientSideRowModelModule,
+  ValidationModule,
+  NumberFilterModule,
+  RowSelectionModule,
+  HighlightChangesModule,
+  CellStyleModule,
+  TextEditorModule,
+  EventApiModule,
+  SelectEditorModule,
+  DateFilterModule,
+  TextFilterModule,
+  CheckboxEditorModule,
+  ColumnApiModule,
+  NumberEditorModule,
+  DateEditorModule,
+  RowApiModule,
+  PaginationModule,
+  RenderApiModule
+} from 'ag-grid-community';
 
+// Import AG Grid Enterprise modules
+import {
+  CellSelectionModule,
+  ClipboardModule,
+  ColumnMenuModule,
+  ContextMenuModule,
+  ExcelExportModule,
+  IntegratedChartsModule,
+  RowGroupingModule,
+  ColumnsToolPanelModule,
+  PivotModule,
+  SetFilterModule,
+  RowGroupingPanelModule, 
+  QuickFilterModule,
+  FiltersToolPanelModule
+} from "ag-grid-enterprise";
 
+// Import AG Charts Enterprise module
+import { AgChartsEnterpriseModule } from 'ag-charts-enterprise';
 
+import { LicenseManager } from "ag-grid-enterprise";
+
+// Register all AG Grid modules
+ModuleRegistry.registerModules([
+  // Community modules
+  ClientSideRowModelModule,
+  ValidationModule,
+  NumberFilterModule,
+  RowSelectionModule,
+  HighlightChangesModule,
+  CellStyleModule,
+  TextEditorModule,
+  EventApiModule,
+  SelectEditorModule,
+  RenderApiModule,
+  DateFilterModule,
+  TextFilterModule,
+  CheckboxEditorModule,
+  ColumnApiModule,
+  NumberEditorModule,
+  DateEditorModule,
+  RowApiModule,
+  PaginationModule,
+  FiltersToolPanelModule,
+  // Enterprise modules
+  ClipboardModule,
+  ExcelExportModule,
+  ColumnMenuModule,
+  ContextMenuModule,
+  CellSelectionModule,
+  IntegratedChartsModule.with(AgChartsEnterpriseModule),
+  RowGroupingModule,
+  ColumnsToolPanelModule,
+  PivotModule,
+  SetFilterModule,
+  RowGroupingPanelModule, 
+  QuickFilterModule
+]);
 
 
 LicenseManager.setLicenseKey('[TRIAL]_this_{AG_Charts_and_AG_Grid}_Enterprise_key_{AG-078794}_is_granted_for_evaluation_only___Use_in_production_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_purchasing_a_production_key_please_contact_info@ag-grid.com___You_are_granted_a_{Single_Application}_Developer_License_for_one_application_only___All_Front-End_JavaScript_developers_working_on_the_application_would_need_to_be_licensed___This_key_will_deactivate_on_{14 April 2025}____[v3]_[0102]_MTc0NDU4NTIwMDAwMA==0e65fd8a353058a58afb8d7be064e726');
-
-ModuleRegistry.registerModules([AllEnterpriseModule]);
-
 
 
 
@@ -413,7 +486,8 @@ const handleTabChange = (tab) => {
       filter: true,
       cellRenderer: (props) => <HoverDeleteCellRenderer {...props} objectType={activeTab} />,
       cellRenderer: EditCellRenderer,
-      hide: !visibleColumns[field]
+      hide: !visibleColumns[field],
+      enableRowGroup: true,
     }));
   
     return [checkboxColumnDef, ...columnDefsForTab,  actionColumnDef];
@@ -436,10 +510,21 @@ const handleTabChange = (tab) => {
   };
 
   const gridOptions = {
-    getRowId: params => params.data.id,
-      columnDefs: getColumnDefs(), // Assign the columnDefs function to the columnDefs property
-
-    // other grid options
+    // Enable Row Grouping feature
+    groupDefaultExpanded: 1, // Expand first level by default
+    autoGroupColumnDef: {
+      headerName: 'Group',
+      minWidth: 200,
+      cellRendererParams: {
+        suppressCount: false, // Show count of items in group
+        checkbox: true // Enable checkbox selection in groups
+      }
+    },
+    // Other grid options you might need
+    rowGroupPanelShow: 'always', // 'always', 'onlyWhenGrouping', or 'never'
+    groupSelectsChildren: true, // When you select a group, all children get selected
+    groupIncludeFooter: true, // Include a footer with aggregated values for each group
+    groupIncludeTotalFooter: true // Include a grand total footer
   };
 
   const addNewRow = async () => {
@@ -763,7 +848,16 @@ useEffect(() => {
 const newTab = "Query1";
 requiredFields[newTab] = [];
 
-
+const autoGroupColumnDef = useMemo(() => ({
+  headerName: 'StageName',
+  minWidth: 200,
+  cellRendererParams: {
+    suppressCount: false, // Set to true if you don't want to show count
+    innerRenderer: (params) => {
+      return params.value;
+    }
+  }
+}), []);
 // Add a new tab and set it as active
 const addComplexTab = (newTabName) => {
   if (!tabs.includes(newTabName)) {
@@ -887,13 +981,13 @@ const toggleCheckboxes = () => {
   return (
     <div className="main-container">
     <div>
-    <FilterInput
+    {/* <FilterInput
                 filterQuery={filterQuery}
                 handleFilterQueryChange={handleFilterQueryChange}
                 onSubmitFilter={onSubmitFilter}
                 setFilterQuery={setFilterQuery}
                 onClearFilters={clearFiltersCallback}
-            />
+            /> */}
     </div>
 
         <div
@@ -946,7 +1040,7 @@ const toggleCheckboxes = () => {
         />
       </div>        
 <div className="field-selection">
-<div ref={dropdownRef}>
+{/* <div ref={dropdownRef}>
       <Dropdown show={show} onToggle={handleToggle}>
         <Dropdown.Toggle variant="grey" id="dropdown-basic" className="grey-button tab-button">
           Columns
@@ -966,7 +1060,7 @@ const toggleCheckboxes = () => {
           ))}
         </Dropdown.Menu>
       </Dropdown>
-    </div>
+    </div> */}
 
 
     </div>
@@ -977,7 +1071,7 @@ const toggleCheckboxes = () => {
 </div>
     </div>
             <div className="grid-container">
-                <div className="ag-theme-quartz" style={{ height: "80%", width: "100%", margin: "auto" }}>
+                <div className="ag-theme-quartz" style={{ height: "100%", width: "100%", margin: "auto" }}>
                     {isLoading ? (
                         <div className="loading-container">
                             <img src="/buffering.gif" alt="Loading..." className="loading-spinner" />
@@ -990,13 +1084,29 @@ const toggleCheckboxes = () => {
                                     onGridReady(params);
                                 }
                             }}
-
+                            rowSelection={{ type: 'multiple' }} // Fixed: using object notation
+                            cellSelection={true} // Fixed: using cellSelection instead of enableRangeSelection
+                            enableCharts={true}
+                            rowGroupPanelShow="always" // Shows the grouping panel at the top ('always', 'onlyWhenGrouping', or 'never')
+                    groupDisplayType="groupRows" // or 'multipleColumns' for column groups
+                    suppressGroupDefaultExpand={false} // Set to true to collapse groups by default
+                    groupDefaultExpanded={1} // Number of levels to expand by default (0 = none, 1 = first level, etc.)
+                    sideBar={"columns"}
+                    
+                            animateRows={true}
+                            suppressAggFuncInHeader={true}
+                            enableCellTextSelection={true}
+                            ensureDomOrder={true}
+                            allowContextMenuWithControlKey={true}
+                            suppressContextMenu={false}
+                      
+                            pivotPanelShow="always"
                             theme={myTheme}
+                            autoGroupColumnDef={autoGroupColumnDef}
                             rowData={gridData[activeTab.toLowerCase()]}
                             columnDefs={getColumnDefs()}
                             onCellDoubleClicked={handleCellDoubleClicked}
                             onCellValueChanged={onCellValueChanged}
-                            rowSelection="multiple"
                             singleClickEdit={false}
                             stopEditingWhenCellsLoseFocus={true}
                             pagination={true}
