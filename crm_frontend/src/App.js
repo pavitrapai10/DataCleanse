@@ -488,6 +488,7 @@ const handleTabChange = (tab) => {
       cellRenderer: EditCellRenderer,
       hide: !visibleColumns[field],
       enableRowGroup: true,
+      enablePivot: true,
     }));
   
     return [checkboxColumnDef, ...columnDefsForTab,  actionColumnDef];
@@ -1144,6 +1145,9 @@ const EditCellRenderer = React.memo((props) => {
   // Destructure value from props first
   const { value, data, colDef } = props;
   const { loadingCell } = props.context;
+  if (!data) {
+    return null;
+  }
   const rowId = data.Id; // Assume `data.Id` is the correct identifier for the row
 
   // --- START FIX ---
