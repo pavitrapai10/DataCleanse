@@ -230,7 +230,7 @@ const handleTabChange = (tab) => {
   
       try {
         data = JSON.parse(text);
-        // console.log(data);
+        console.log(data);
       } catch (error) {
         console.error('Error parsing JSON:', error);
         data = [];
@@ -1033,37 +1033,79 @@ const toggleCheckboxes = () => {
 );
 };
 const EditCellRenderer = React.memo((props) => {
+  // Destructure value from props first
   const { value, data, colDef } = props;
   const { loadingCell } = props.context;
   const rowId = data.Id; // Assume `data.Id` is the correct identifier for the row
 
-  let cellContent = value;
+  // --- START FIX ---
+  let displayValue = value; // Default to the original value
 
-  if (loadingCell && loadingCell.id === rowId && loadingCell.col === colDef.field) {
-    if (loadingCell.status === 'loading') {
-      cellContent = (
-        <div className="cell-content">
-          <span>{value}</span>
-          <img src={`${process.env.PUBLIC_URL}/loading.gif`} className="icon" alt="Loading" />
-        </div>
-      );
-    } else if (loadingCell.status === 'success') {
-      cellContent = (
-        <div className="cell-content">
-          <span>{value}</span>
-          <img src={`${process.env.PUBLIC_URL}/success.gif`} className="icon" alt="Success" />
-        </div>
-      );
-    } else if (loadingCell.status === 'error') {
-      cellContent = (
-        <div className="cell-content">
-          <span>{value}</span>
-          <img src={`${process.env.PUBLIC_URL}/error.gif`} className="icon" alt="Error" />
-        </div>
-      );
+  // Check if 'value' is an object, not null, and not already a React element
+  if (value && typeof value === 'object' && !React.isValidElement(value)) {
+    // Attempt to format address objects nicely
+    if (value.street || value.city || value.state || value.postalCode || value.country) {
+      // Join available parts, filtering out null/empty values
+      displayValue = [
+        value.street,
+        value.city,
+        value.state,
+        value.postalCode,
+        value.country,
+      ]
+        .filter(part => part) // Remove null/undefined/empty strings
+        .join(', '); // Join with comma and space
+    } else {
+      // For other generic objects, fallback to JSON stringification
+      try {
+        displayValue = JSON.stringify(value);
+      } catch (e) {
+        console.error("Could not stringify object:", value, e);
+        displayValue = '[Object]'; // Fallback string
+      }
     }
   }
+  // Ensure null/undefined are displayed as empty strings
+  else if (value === null || typeof value === 'undefined') {
+    displayValue = '';
+  }
 
+  // Use displayValue for rendering
+  let cellContent = <span>{displayValue}</span>; // Initial render state
+
+  if (loadingCell && loadingCell.id === rowId && loadingCell.col === colDef.field) {
+    const iconSrc =
+      loadingCell.status === 'loading'
+        ? `${process.env.PUBLIC_URL}/loading.gif`
+        : loadingCell.status === 'success'
+        ? `${process.env.PUBLIC_URL}/success.gif`
+        : loadingCell.status === 'error'
+        ? `${process.env.PUBLIC_URL}/error.gif`
+        : null;
+
+    const altText =
+      loadingCell.status === 'loading'
+        ? 'Loading'
+        : loadingCell.status === 'success'
+        ? 'Success'
+        : loadingCell.status === 'error'
+        ? 'Error'
+        : '';
+
+    if (iconSrc) {
+       // Render value alongside the icon
+       cellContent = (
+         <div className="cell-content">
+           <span>{displayValue}</span> {/* Use displayValue */}
+           <img src={iconSrc} className="icon" alt={altText} />
+         </div>
+       );
+    }
+    // If no specific status, just show the value (handled by the initial cellContent assignment)
+
+  }
+
+  // Always return a valid React element (like a div wrapping the content)
   return <div>{cellContent}</div>;
 });
 
