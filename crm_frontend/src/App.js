@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef,useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 import HoverDeleteCellRenderer from './buttons/delete';
 import MaximizeButtonCellRenderer from './MaximizeButtonCellRenderer';
 import './App.css';
@@ -9,6 +7,21 @@ import { Dropdown } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import Overlay from './overlays/Overlay';
 import FilterInput from './filterInput';
+import { ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
+import { AllEnterpriseModule, LicenseManager } from 'ag-grid-enterprise';
+import { themeBalham } from 'ag-grid-community';
+
+
+
+
+
+
+LicenseManager.setLicenseKey('[TRIAL]_this_{AG_Charts_and_AG_Grid}_Enterprise_key_{AG-078794}_is_granted_for_evaluation_only___Use_in_production_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_purchasing_a_production_key_please_contact_info@ag-grid.com___You_are_granted_a_{Single_Application}_Developer_License_for_one_application_only___All_Front-End_JavaScript_developers_working_on_the_application_would_need_to_be_licensed___This_key_will_deactivate_on_{14 April 2025}____[v3]_[0102]_MTc0NDU4NTIwMDAwMA==0e65fd8a353058a58afb8d7be064e726');
+
+ModuleRegistry.registerModules([AllEnterpriseModule]);
+
+
+
 
 const App = () => {
   const initialTabs = ['Lead', 'Account', 'Opportunity', 'Contact'];
@@ -49,7 +62,7 @@ const [visibleColumns, setVisibleColumns] = useState(
 
   const [show, setShow] = useState(false);
   const dropdownRef = useRef(null);
-
+  const myTheme = themeBalham.withParams({ accentColor: 'red' });
   const handleToggle = (isOpen) => {
     setShow(isOpen);
   };
@@ -994,6 +1007,8 @@ const toggleCheckboxes = () => {
                                     onGridReady(params);
                                 }
                             }}
+
+                            theme={myTheme}
                             rowData={gridData[activeTab.toLowerCase()]}
                             columnDefs={getColumnDefs()}
                             onCellDoubleClicked={handleCellDoubleClicked}
