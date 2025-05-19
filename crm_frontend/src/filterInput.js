@@ -4,7 +4,7 @@ import mic from './icons8-mic-24.png';
 import expandIcon from './expand.svg';
 import collapseIcon from './collapse.svg';
 import clearIcon from './clearIcon.png'; // Import the clear icon image
-import logoImage from './Preview.png'; // Import the logo image
+import logoImage from './c4u-logo.png'; // Import the logo image
 
 
 const FilterInput = ({ filterQuery, handleFilterQueryChange, onSubmitFilter, setFilterQuery, onClearFilters }) => {

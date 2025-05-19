@@ -56,7 +56,7 @@ body {
   background-color: #4f5152;
 }
 .pink-line{
-  background-color: #dd99a8;
+  background-color: #836eff;
   height: 1px;
   margin-left: 7px;
   margin-right: 7px;
@@ -94,7 +94,7 @@ body {
   height: 85%; /* Set height to 100% to match parent div's height */
 }
 .tab-button:hover {
-  background-color: #ccc; /* Change background color on hover */
+  background-color: #836eff; /* Change background color on hover */
 }
 
 .tab-button.active, .tab-button.active:hover {
@@ -108,8 +108,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 82vh; /* Adjust height to fill the available space */
-  background-color: #fff;
+  height: 90vh; /* Adjust height to fill the available space */
+  background-color: #836eff;
   margin: 0; /* Ensure no margin */
   padding: 0; /* Remove padding */
   border-top-left-radius: 10px; /* Rounded edges */
@@ -154,7 +154,7 @@ body {
   /* Your existing styles */
   padding: 10px 5px;
   background-color:  #e0e0e0;
-  border: 1px solid #f4f1f1;
+  border: 1px solid #f4f4f4;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -175,7 +175,7 @@ body {
 }
 
 .dropbtn {
-  background-color: #f9f9f9;
+  background-color: #836eff;
   color: black;
   padding: 4px;
   font-size: 12px;
@@ -187,7 +187,7 @@ body {
 .dropdown-content {
   display: none;
   position: absolute;
-  background-color: #f9f9f9;
+  background-color: #836eff;
   min-width: 160px;
   box-shadow: 0px 8px 16px 0px rgba(36, 35, 35, 0.2);
   z-index: 1;
@@ -203,7 +203,7 @@ body {
 }
 
 .dropdown-content label:hover {
-  background-color: #f1f1f1;
+  background-color: #836eff;
 }
 
 .dropdown-content label input[type="checkbox"] {
@@ -215,7 +215,7 @@ body {
 }
 
 .dropdown:hover .dropbtn {
-  background-color: #f1f1f1;
+  background-color: #836eff;
 }
 
 .icon {

@@ -6,6 +6,7 @@ import os
 import json  # Import the json library
 from fastapi.middleware.cors import CORSMiddleware
 import simple_salesforce
+import requests
 
 app = FastAPI()
 
@@ -286,3 +287,51 @@ async def bulk_update(request: Request):
         return bulk
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/summarise")
+async def summarise_text(request: Request):
+    try:
+        data = await request.json()
+        paragraph = data.get("paragraph")
+        record_id = data.get("record_id")
+        object_name = data.get("object")
+
+        if not paragraph or not record_id or not object_name:
+            raise HTTPException(status_code=400, detail="Missing required fields.")
+
+        # Prepare Groq API call
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        groq_url = "https://api.groq.com/openai/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "llama3-70b-8192",  # or your preferred model
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an assistant that summarizes CRM notes for business users."
+                },
+                {
+                    "role": "user",
+                    "content": f"Summarize the following note for CRM record {record_id} ({object_name}):\n\n{paragraph}"
+                }
+            ],
+            "max_tokens": 512,
+            "temperature": 0.5
+        }
+
+        response = requests.post(groq_url, headers=headers, json=payload)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"Groq API error: {response.text}")
+
+        summary = response.json()["choices"][0]["message"]["content"]
+        return {"summary": summary}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+

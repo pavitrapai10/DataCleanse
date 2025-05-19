@@ -8,6 +8,8 @@ import Form from 'react-bootstrap/Form';
 import Overlay from './overlays/Overlay';
 import FilterInput from './filterInput';
 import { themeBalham } from 'ag-grid-community';
+import { FiFileText } from 'react-icons/fi'; 
+import TextFieldOverlay from './overlays/TextFieldOverlay'; 
 
 // Import AG Grid Community modules
 import { 
@@ -92,7 +94,7 @@ ModuleRegistry.registerModules([
 ]);
 
 
-LicenseManager.setLicenseKey('your license key here');
+LicenseManager.setLicenseKey('[TRIAL]this{AG_Charts_and_AG_Grid}Enterprise_key{AG-078794}is_granted_for_evaluation_only_Use_in_production_is_not_permitted_Please_report_misuse_to_legal@ag-grid.com_For_help_with_purchasing_a_production_key_please_contact_info@ag-grid.com_You_are_granted_a{Single_Application}Developer_License_for_one_application_only_All_Front-End_JavaScript_developers_working_on_the_application_would_need_to_be_licensed_This_key_will_deactivate_on{14 April 2025}_[v3][0102]_MTc0NDU4NTIwMDAwMA==0e65fd8a353058a58afb8d7be064e726');
 
 
 
@@ -135,7 +137,7 @@ const [visibleColumns, setVisibleColumns] = useState(
 
   const [show, setShow] = useState(false);
   const dropdownRef = useRef(null);
-  const myTheme = themeBalham.withParams({ accentColor: 'red' });
+  const myTheme = themeBalham.withParams({ accentColor: 'blue' });
   const handleToggle = (isOpen) => {
     setShow(isOpen);
   };
@@ -446,6 +448,25 @@ const handleTabChange = (tab) => {
     setShowPopup(true);
   };
 
+  const handleNoteClick = (data) => {
+    setTextFieldOverlayRowId(data.Id || data.id);
+    setTextFieldOverlayValue(data.note || ''); // Adjust if your note field is named differently
+    setShowTextFieldOverlay(true);
+  };
+
+  const handleSaveTextFieldOverlay = (rowId, value) => {
+    // Update the note for the row in gridData
+    setGridData(prevData => {
+      const tabKey = activeTab.toLowerCase();
+      const updatedRows = prevData[tabKey].map(row =>
+        (row.Id === rowId || row.id === rowId)
+          ? { ...row, note: value }
+          : row
+      );
+      return { ...prevData, [tabKey]: updatedRows };
+    });
+  };
+
   const getColumnDefs = () => {
     if (columnDefs[activeTab.toLowerCase()]) {
       return columnDefs[activeTab.toLowerCase()];
@@ -470,6 +491,22 @@ const handleTabChange = (tab) => {
       pinned: 'left',
       width: 50
     };
+
+    const noteColumnDef = {
+      headerName: ' ',
+      field: 'note',
+      cellRenderer: (params) => (
+        <span
+          style={{ cursor: 'pointer', color: '#6c63ff', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => handleNoteClick(params.data)}
+          title="Add/View Note"
+        >
+          <FiFileText />
+        </span>
+      ),
+      pinned: 'left',
+      width: 50
+    };
   
     const allFields = requiredFields[activeTab].concat(selectedFields);
   
@@ -491,7 +528,7 @@ const handleTabChange = (tab) => {
       enablePivot: true,
     }));
   
-    return [checkboxColumnDef, ...columnDefsForTab,  actionColumnDef];
+    return [checkboxColumnDef, actionColumnDef, noteColumnDef,  ...columnDefsForTab];
   };
 
   const requiredFields = {
@@ -980,21 +1017,25 @@ const toggleCheckboxes = () => {
   setShowCheckboxes(!showCheckboxes);
 };
 
+const [showTextFieldOverlay, setShowTextFieldOverlay] = useState(false);
+const [textFieldOverlayValue, setTextFieldOverlayValue] = useState('');
+const [textFieldOverlayRowId, setTextFieldOverlayRowId] = useState(null);
+
   return (
     <div className="main-container">
-    <div>
-    {/* <FilterInput
+    {/* <div>
+    <FilterInput
                 filterQuery={filterQuery}
                 handleFilterQueryChange={handleFilterQueryChange}
                 onSubmitFilter={onSubmitFilter}
                 setFilterQuery={setFilterQuery}
                 onClearFilters={clearFiltersCallback}
-            /> */}
-    </div>
+            />
+    </div> */}
 
         <div
             style={{
-                backgroundColor: "rgb(250, 215, 215)",
+                backgroundColor: "rgb(121, 114, 255)",
                 padding: "10px",
                 
             }}
@@ -1137,7 +1178,15 @@ const toggleCheckboxes = () => {
             onSave={handleSaveOverlayData}
           />
         )}
-      
+        {showTextFieldOverlay && (
+          <TextFieldOverlay
+            value={textFieldOverlayValue}
+            rowId={textFieldOverlayRowId}
+            activeTab={activeTab}
+            onClose={() => setShowTextFieldOverlay(false)}
+            onSave={handleSaveTextFieldOverlay}
+          />
+        )}
     </div>
 
 );

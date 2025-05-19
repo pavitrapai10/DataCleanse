@@ -1,0 +1,31 @@
+version: '3'
+services:
+  crm_backend:
+    build: ./crm_backend
+    container_name: crm_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./crm_backend:/app
+    environment:
+      - ENV_FILE=.env
+
+  crm_frontend:
+    build: ./crm_frontend
+    container_name: crm_frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./crm_frontend:/app
+    depends_on:
+      - crm_backend
+    
+    networks:
+      - crm_network
+
+networks:
+  crm_network:
+    driver: bridge
+      
+      
+  
