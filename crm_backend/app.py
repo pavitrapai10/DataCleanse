@@ -296,6 +296,10 @@ async def summarise_text(request: Request):
         paragraph = data.get("paragraph")
         record_id = data.get("record_id")
         object_name = data.get("object")
+        context = data.get("context")
+        context_str = ""
+        if context:
+            context_str = "\n\nContext (all fields):\n" + json.dumps(context, indent=2)
 
         if not paragraph or not record_id or not object_name:
             raise HTTPException(status_code=400, detail="Missing required fields.")
@@ -313,11 +317,11 @@ async def summarise_text(request: Request):
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an assistant that summarizes CRM notes for business users."
+                    "content": "You are an expert assistant that summarizes CRM notes for business users in bullet points."
                 },
                 {
                     "role": "user",
-                    "content": f"Summarize the following note for CRM record {record_id} ({object_name}):\n\n{paragraph}"
+                    "content": f"Summarize the following note for CRM record {record_id} ({object_name}):{context_str}\n\nNote:\n{paragraph}"
                 }
             ],
             "max_tokens": 512,

@@ -110,6 +110,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [tabs, setTabs] = useState(loadSavedTabs());
   const [showOverlay, setShowOverlay] = useState(false);
+  const [textFieldOverlayContext, setTextFieldOverlayContext] = useState(null);
   const [overlayData, setOverlayData] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
@@ -450,8 +451,12 @@ const handleTabChange = (tab) => {
 
   const handleNoteClick = (data) => {
     setTextFieldOverlayRowId(data.Id || data.id);
-    setTextFieldOverlayValue(data.note || ''); // Adjust if your note field is named differently
+    setTextFieldOverlayValue(data.note || '');
     setShowTextFieldOverlay(true);
+    // Optionally, store context for overlay
+    const fields = availableFields; // or selectedFields, as needed
+    const contextObj = getContext(activeTab, data, fields);
+    setTextFieldOverlayContext(contextObj); // <-- add this state if you want
   };
 
   const handleSaveTextFieldOverlay = (rowId, value) => {
@@ -1183,6 +1188,7 @@ const [textFieldOverlayRowId, setTextFieldOverlayRowId] = useState(null);
             value={textFieldOverlayValue}
             rowId={textFieldOverlayRowId}
             activeTab={activeTab}
+            context={textFieldOverlayContext}
             onClose={() => setShowTextFieldOverlay(false)}
             onSave={handleSaveTextFieldOverlay}
           />
@@ -1270,5 +1276,25 @@ const EditCellRenderer = React.memo((props) => {
   // Always return a valid React element (like a div wrapping the content)
   return <div>{cellContent}</div>;
 });
+
+/**
+ * Generates a SOQL query and context data for a given row and tab.
+ * @param {string} objectName - The Salesforce object/tab (e.g., 'Account').
+ * @param {object} rowData - The row data object.
+ * @param {array} fields - The list of fields to include in the context.
+ * @returns {object} { soql, contextData }
+ */
+const getContext = (objectName, rowData, fields) => {
+  // Generate SOQL query
+  const soql = `SELECT ${fields.join(', ')} FROM ${objectName} WHERE Id = '${rowData.Id || rowData.id}'`;
+
+  // Extract context data for the selected fields
+  const contextData = {};
+  fields.forEach(field => {
+    contextData[field] = rowData[field];
+  });
+
+  return { soql, contextData };
+};
 
 export default App;

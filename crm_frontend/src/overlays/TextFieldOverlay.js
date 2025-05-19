@@ -3,9 +3,9 @@ import { FiMic, FiFileText, FiMail, FiUpload, FiX, FiGlobe } from 'react-icons/f
 import './TextFieldOverlay.css';
 
 const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'Hindi' },
-  { code: 'es', label: 'Spanish' },
+  { code: 'en', label: 'English', speechCode: 'en-US' },
+  { code: 'hi', label: 'Hindi', speechCode: 'hi-IN' },
+  { code: 'es', label: 'Spanish', speechCode: 'es-ES' },
   // Add more languages as needed
 ];
 
@@ -15,15 +15,63 @@ const TextFieldOverlay = ({
   onSave,
   rowId,
   activeTab,
+  context, // <-- added context prop
 }) => {
   const [text, setText] = useState(value || '');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [language, setLanguage] = useState('en');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const recognitionRef = useRef(null);
   const langBtnRef = useRef(null);
 
-  // Summarize note using backend
+  // Find the correct speech recognition code for the selected language
+  const getSpeechLang = () => {
+    const langObj = LANGUAGES.find(l => l.code === language);
+    return langObj ? langObj.speechCode : 'en-US';
+  };
+
+  // Speech recognition logic
+  const handleMic = () => {
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = false;
+      recognition.lang = getSpeechLang();
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = function () {
+        setIsRecognizing(true);
+      };
+
+      recognition.onresult = function (event) {
+        const transcript = event.results[0][0].transcript;
+        setText(transcript); // Set the recognized text in the textarea
+        setIsRecognizing(false);
+      };
+
+      recognition.onerror = function (event) {
+        setIsRecognizing(false);
+        if (event.error === 'network') {
+          alert('Network error. Please check your internet connection and try again.');
+        } else {
+          alert('Recognition error. Please try again.');
+        }
+      };
+
+      recognition.onend = function () {
+        setIsRecognizing(false);
+      };
+
+      recognition.start();
+    } else {
+      alert('Speech recognition not supported in this browser.');
+    }
+  };
+
   const handleSummarise = async () => {
     setLoading(true);
     try {
@@ -34,6 +82,7 @@ const TextFieldOverlay = ({
           paragraph: text,
           record_id: rowId,
           object: activeTab,
+          context: context, // <-- pass context here
           language: language,
         }),
       });
@@ -45,8 +94,6 @@ const TextFieldOverlay = ({
     setLoading(false);
   };
 
-  // Placeholder handlers for other buttons
-  const handleMic = () => alert('Voice-to-text not implemented.');
   const handleEmailDraft = () => alert('Email draft not implemented.');
   const handleUploadAudio = () => alert('Audio upload not implemented.');
 
@@ -54,7 +101,6 @@ const TextFieldOverlay = ({
     onSave(rowId, text);
     onClose();
   };
-  console.log(rowId)
 
   return (
     <div className="textfield-overlay right-overlay">
@@ -66,11 +112,18 @@ const TextFieldOverlay = ({
           </button>
         </div>
         <div className="note-bar-row">
-          <button className="note-bar-btn speak-btn" onClick={handleMic} title="Speak to Note">
+          <button
+            className={`note-bar-btn speak-btn${isRecognizing ? ' active' : ''}`}
+            onClick={handleMic}
+            title="Speak to Note"
+            disabled={isRecognizing}
+          >
             <span className="speak-btn-inner">
               <FiMic size={22} />
             </span>
-            <span style={{ marginLeft: 10 }}>Speak to Note</span>
+            <span style={{ marginLeft: 10 }}>
+              {isRecognizing ? 'Listening...' : 'Speak to Note'}
+            </span>
           </button>
           <button className="note-bar-btn" onClick={handleSummarise} title="AI Notes">
             <FiFileText /> AI Notes
