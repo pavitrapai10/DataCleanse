@@ -300,6 +300,20 @@ async def summarise_text(request: Request):
         context_str = ""
         if context:
             context_str = "\n\nContext (all fields):\n" + json.dumps(context, indent=2)
+            print("Queried Context Data:", context_str)  # Print context for debugging
+
+        language = data.get("language", "en")
+        language_label = {
+            "en": "English", "hi": "Hindi", "bn": "Bengali", "te": "Telugu", "mr": "Marathi",
+            "ta": "Tamil", "gu": "Gujarati", "kn": "Kannada", "ml": "Malayalam", "pa": "Punjabi",
+            "ur": "Urdu", "es": "Spanish", "fr": "French", "de": "German"
+        }.get(language, "English")
+
+        system_message = (
+            f"You are an expert assistant that summarizes CRM notes for business users in bullet points. "
+            f"Summarize and translate the summary into {language_label}. "
+            f"Here is the context data for this record:\n{context_str}"
+        )
 
         if not paragraph or not record_id or not object_name:
             raise HTTPException(status_code=400, detail="Missing required fields.")
@@ -313,15 +327,15 @@ async def summarise_text(request: Request):
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "llama3-70b-8192",  # or your preferred model
+            "model": "llama3-70b-8192",
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert assistant that summarizes CRM notes for business users in bullet points."
+                    "content": system_message
                 },
                 {
                     "role": "user",
-                    "content": f"Summarize the following note for CRM record {record_id} ({object_name}):{context_str}\n\nNote:\n{paragraph}"
+                    "content": f"Summarize the following note for CRM record {record_id} ({object_name}):\n\nNote:\n{paragraph}"
                 }
             ],
             "max_tokens": 512,
@@ -333,7 +347,7 @@ async def summarise_text(request: Request):
             raise HTTPException(status_code=500, detail=f"Groq API error: {response.text}")
 
         summary = response.json()["choices"][0]["message"]["content"]
-        return {"summary": summary}
+        return {"summary": summary, "context" : context_str}
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

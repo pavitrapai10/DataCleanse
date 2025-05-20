@@ -5,7 +5,19 @@ import './TextFieldOverlay.css';
 const LANGUAGES = [
   { code: 'en', label: 'English', speechCode: 'en-US' },
   { code: 'hi', label: 'Hindi', speechCode: 'hi-IN' },
+  { code: 'mr', label: 'Marathi', speechCode: 'mr-IN' },
+  { code: 'ta', label: 'Tamil', speechCode: 'ta-IN' },
+  { code: 'gu', label: 'Gujarati', speechCode: 'gu-IN' },
+  { code: 'kn', label: 'Kannada', speechCode: 'kn-IN' },
+  { code: 'ml', label: 'Malayalam', speechCode: 'ml-IN' },
+  { code: 'pa', label: 'Punjabi', speechCode: 'pa-IN' },
+  { code: 'ur', label: 'Urdu', speechCode: 'ur-IN' },
+  { code: 'bn', label: 'Bengali', speechCode: 'bn-IN' },
+  { code: 'te', label: 'Telugu', speechCode: 'te-IN' },
   { code: 'es', label: 'Spanish', speechCode: 'es-ES' },
+  { code: 'fr', label: 'French', speechCode: 'fr-FR' },
+  { code: 'de', label: 'German', speechCode: 'de-DE' },
+ 
   // Add more languages as needed
 ];
 
@@ -38,7 +50,7 @@ const TextFieldOverlay = ({
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
-      recognition.continuous = false;
+      recognition.continuous = true; // <-- Listen continuously
       recognition.lang = getSpeechLang();
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
@@ -48,18 +60,13 @@ const TextFieldOverlay = ({
       };
 
       recognition.onresult = function (event) {
-        const transcript = event.results[0][0].transcript;
-        setText(transcript); // Set the recognized text in the textarea
-        setIsRecognizing(false);
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        setText(prev => prev ? prev + ' ' + transcript : transcript);
+        // Don't set isRecognizing to false here, let user stop manually
       };
 
-      recognition.onerror = function (event) {
+      recognition.onerror = function () {
         setIsRecognizing(false);
-        if (event.error === 'network') {
-          alert('Network error. Please check your internet connection and try again.');
-        } else {
-          alert('Recognition error. Please try again.');
-        }
       };
 
       recognition.onend = function () {
@@ -73,27 +80,28 @@ const TextFieldOverlay = ({
   };
 
   const handleSummarise = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://127.0.0.1:8000/summarise', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paragraph: text,
-          record_id: rowId,
-          object: activeTab,
-          context: context, // <-- pass context here
-          language: language,
-        }),
-      });
-      const data = await response.json();
-      setSummary(data.summary || 'No summary returned.');
-    } catch (err) {
-      setSummary('Error fetching summary.');
-    }
-    setLoading(false);
-  };
-
+  setLoading(true);
+  try {
+    const response = await fetch('http://127.0.0.1:8000/summarise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paragraph: text,
+        record_id: rowId,
+        object: activeTab,
+        context: context,
+        language: language,
+      }),
+    });
+    const data = await response.json();
+    setSummary(data.summary || 'No summary returned.');
+    // Optionally update context with formatted version from backend:
+    // if (data.context) setQueriedContext(data.context);
+  } catch (err) {
+    setSummary('Error fetching summary.');
+  }
+  setLoading(false);
+};
   const handleEmailDraft = () => alert('Email draft not implemented.');
   const handleUploadAudio = () => alert('Audio upload not implemented.');
 
@@ -125,6 +133,11 @@ const TextFieldOverlay = ({
               {isRecognizing ? 'Listening...' : 'Speak to Note'}
             </span>
           </button>
+          {isRecognizing && (
+            <button className="note-bar-btn" onClick={() => recognitionRef.current && recognitionRef.current.stop()}>
+              Stop Listening
+            </button>
+          )}
           <button className="note-bar-btn" onClick={handleSummarise} title="AI Notes">
             <FiFileText /> AI Notes
           </button>
@@ -143,6 +156,9 @@ const TextFieldOverlay = ({
             >
               <FiGlobe /> Language
             </button>
+            <span style={{ marginLeft: 8, fontWeight: 500 }}>
+              {LANGUAGES.find(l => l.code === language)?.label}
+            </span>
             {showLangDropdown && (
               <div className="lang-dropdown" style={{ minWidth: 120 }}>
                 {LANGUAGES.map(lang => (
@@ -168,6 +184,14 @@ const TextFieldOverlay = ({
           style={{ width: '100%', marginBottom: 10 }}
           placeholder="Type or paste your note here..."
         />
+        {context && (
+          <div style={{ marginBottom: 10 }}>
+            <strong>Queried Context Data:</strong>
+            <pre style={{ background: "#f6f6f6", padding: 8, borderRadius: 4, maxHeight: 200, overflow: "auto", fontSize: 13 }}>
+              {JSON.stringify(context, null, 2)}
+            </pre>
+          </div>
+        )}
         <div>
           <strong>Summary:</strong>
           <div className="summary-area">

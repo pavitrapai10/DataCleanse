@@ -500,15 +500,25 @@ const handleTabChange = (tab) => {
     const noteColumnDef = {
       headerName: ' ',
       field: 'note',
-      cellRenderer: (params) => (
-        <span
-          style={{ cursor: 'pointer', color: '#6c63ff', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => handleNoteClick(params.data)}
-          title="Add/View Note"
-        >
-          <FiFileText />
-        </span>
-      ),
+      cellRenderer: (params) => {
+        const hasNote = params.data && params.data.note && params.data.note.trim() !== '';
+        return (
+          <span
+            style={{
+              cursor: 'pointer',
+              color: hasNote ? '#888' : '#6c63ff', // Grey if note exists, purple otherwise
+              fontSize: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={() => handleNoteClick(params.data)}
+            title={hasNote ? "View/Edit Note" : "Add Note"}
+          >
+            <FiFileText />
+          </span>
+        );
+      },
       pinned: 'left',
       width: 50
     };
