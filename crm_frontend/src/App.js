@@ -671,30 +671,30 @@ const handleTabChange = (tab) => {
   
   const onCellEditingStopped = useCallback(async (event) => {
     console.log("-----------edit done");
-  
+
     const { data, colDef, newValue, oldValue } = event;
     const rowId = data.Id;
-  
-    if (!colDef || newValue === undefined || oldValue === undefined) {
+
+    if (!colDef || newValue === undefined) { // <-- Only check for colDef and newValue
       console.error("Cell Value not changed", event);
       return;
     }
-  
+
     if (newValue === oldValue) {
       console.log("Value did not change, no update needed");
       return;
     }
-  
+
     if (loadingCell && loadingCell.id === rowId && loadingCell.col === colDef.field) {
       return;
     }
-  
+
     setLoadingCell({ id: rowId, col: colDef.field, status: 'loading' });
-  
+
     try {
       await onCellValueChanged({ data, colDef, newValue, oldValue });
       setLoadingCell({ id: rowId, col: colDef.field, status: 'success' });
-  
+
       setTimeout(() => {
         setLoadingCell(null);
       }, 2000);
@@ -705,81 +705,110 @@ const handleTabChange = (tab) => {
   }, [loadingCell]);
   
   const onCellValueChanged = async ({ data, colDef, newValue, oldValue }) => {
-    const field = colDef.field;
-    const id = data.Id;
+  const field = colDef.field;
+  const id = data.Id;
+
+  if (!field || !id) {
+    console.error("Missing field or ID for update");
+    return;
+  }
+
+  // Check if multiple rows are selected
+  const selectedRows = gridApiRef.current?.getSelectedRows?.() || [];
+  if (selectedRows.length > 1) {
+    const ids = selectedRows.map(row => row.Id);
+    console.log("About to update these IDs:", ids);
+    console.log("Current field values before update:", selectedRows.map(row => ({id: row.Id, [field]: row[field]})));
   
-    if (!field || !id) {
-      console.error("Missing field or ID for update");
-      return;
-    }
+    // Create a new array reference to ensure React detects the change
+    setGridData(prevData => {
+      console.log("Previous data before update:", prevData[activeTab.toLowerCase()]);
+      
+      const updatedTabData = prevData[activeTab.toLowerCase()].map(row => {
+        // If this row is in the selected rows, update the field value
+        if (ids.includes(row.Id)) {
+          console.log(`Updating row with ID ${row.Id}, field ${field} from ${row[field]} to ${newValue}`);
+          return { ...row, [field]: newValue };
+        }
+        return row;
+      });
+      
+      console.log("Updated data after changes:", updatedTabData);
+      
+      return {
+        ...prevData,
+        [activeTab.toLowerCase()]: updatedTabData,
+      };
+    });
   
-    // Check if multiple rows are selected
-    const selectedRows = gridApiRef.current?.getSelectedRows?.() || [];
-    console.log("Selected Rows:", selectedRows);
-    
-    if (selectedRows.length > 1) {
-      const ids = selectedRows.map(row => row.Id);
-      console.log("About to update these IDs:", ids);
-      console.log("Current field values before update:", selectedRows.map(row => ({id: row.Id, [field]: row[field]})));
+    // Force grid refresh after state update
+    setTimeout(() => {
+      if (gridApiRef.current?.refreshCells) {
+        console.log("Forcing grid refresh");
+        gridApiRef.current.refreshCells({force: true});
+      }
+    }, 0);
   
-      // Create a new array reference to ensure React detects the change
-      setGridData(prevData => {
-        console.log("Previous data before update:", prevData[activeTab.toLowerCase()]);
-        
-        const updatedTabData = prevData[activeTab.toLowerCase()].map(row => {
-          // If this row is in the selected rows, update the field value
-          if (ids.includes(row.Id)) {
-            console.log(`Updating row with ID ${row.Id}, field ${field} from ${row[field]} to ${newValue}`);
-            return { ...row, [field]: newValue };
-          }
-          return row;
-        });
-        
-        console.log("Updated data after changes:", updatedTabData);
-        
-        return {
-          ...prevData,
-          [activeTab.toLowerCase()]: updatedTabData,
-        };
+    console.log('Bulk Update:', { ids, field, newValue });
+  
+    try {
+      const payloads = {
+        object: activeTab,
+        id: ids,
+        field,
+        value: newValue,
+      };
+  
+      const response = await fetch('http://127.0.0.1:8000/salesforce/bulk_update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloads),
       });
   
-      // Force grid refresh after state update
-      setTimeout(() => {
-        if (gridApiRef.current?.refreshCells) {
-          console.log("Forcing grid refresh");
-          gridApiRef.current.refreshCells({force: true});
-        }
-      }, 0);
-  
-      console.log('Bulk Update:', { ids, field, newValue });
-  
-      try {
-        const payloads = {
-          object: activeTab,
-          id: ids,
-          field,
-          value: newValue,
-        };
-  
-        const response = await fetch('http://127.0.0.1:8000/salesforce/bulk_update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloads),
-        });
-  
-        if (!response.ok) {
-          throw new Error('Bulk update failed');
-        }
-        
-        console.log("Bulk update API response:", await response.json());
-      } catch (error) {
-        console.error('Bulk update error:', error);
+      if (!response.ok) {
+        throw new Error('Bulk update failed');
       }
-    } else {
-      // Single row update logic unchanged
-      // ...
+      
+      console.log("Bulk update API response:", await response.json());
+    } catch (error) {
+      console.error('Bulk update error:', error);
     }
-  };
+  } else {
+    // --- SINGLE ROW UPDATE LOGIC ---
+    // Update the grid data in state
+    setGridData(prevData => {
+      const updatedTabData = prevData[activeTab.toLowerCase()].map(row =>
+        row.Id === id ? { ...row, [field]: newValue } : row
+      );
+      return {
+        ...prevData,
+        [activeTab.toLowerCase()]: updatedTabData,
+      };
+    });
+
+    // Call backend to persist the change
+    try {
+      const payload = {
+        object: activeTab,
+        id,
+        field,
+        value: newValue,
+      };
+      const response = await fetch('http://127.0.0.1:8000/salesforce/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Update failed');
+      }
+      console.log("Single row update API response:", await response.json());
+    } catch (error) {
+      console.error('Single row update error:', error);
+    }
+  }
+};
   
 
 

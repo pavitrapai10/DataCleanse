@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from pydantic import BaseModel
 from simple_salesforce import Salesforce, bulk
 from dotenv import load_dotenv
@@ -7,6 +7,7 @@ import json  # Import the json library
 from fastapi.middleware.cors import CORSMiddleware
 import simple_salesforce
 import requests
+from prompts import SUMMARY_PROMPT, EMAIL_DRAFT_PROMPT
 
 app = FastAPI()
 
@@ -17,6 +18,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
+    expose_headers=["*"],
 )
 
 # Load environment variables from .env file
@@ -166,7 +168,9 @@ def write_nec():
                }
     return records
 
-
+@app.options("/{rest_of_path:path}")
+async def preflight_handler():
+    return {}
 @app.get("/")
 async def pinger():
     return {"System is up and running"}
@@ -263,7 +267,9 @@ async def bulk_update(request: Request):
         data = await request.json()
         # print(data)
         update_data = [
-            {'Id': record_id, data.get('field'): data.get('value')} for record_id in data.get('id')]
+            {'Id': record_id, data.get('field'): data.get('value')}
+            for record_id in data.get('id')
+        ]
 # Convert list of dictionaries to a pandas DataFrame for better visualization (optional)
 # Use Salesforce Bulk API to perform the update
         bulk = sf.bulk.__getattr__(data['object']).update(
@@ -279,7 +285,8 @@ async def bulk_update(request: Request):
         data = await request.json()
         # print(data)
         update_data = [
-            {'Id': record_id} for record_id in data.get('id')]
+            {'Id': record_id} for record_id in data.get('id')
+        ]
 # Convert list of dictionaries to a pandas DataFrame for better visualization (optional)
 # Use Salesforce Bulk API to perform the update
         bulk = sf.bulk.__getattr__(data['object']).delete(
@@ -309,10 +316,18 @@ async def summarise_text(request: Request):
             "ur": "Urdu", "es": "Spanish", "fr": "French", "de": "German"
         }.get(language, "English")
 
-        system_message = (
-            f"You are an expert assistant that summarizes CRM notes for business users in bullet points. "
-            f"Summarize and translate the summary into {language_label}. "
-            f"Here is the context data for this record:\n{context_str}"
+# For summary
+        system_message = SUMMARY_PROMPT.format(
+            language_code=language,
+            context_data=context_str,
+            note=paragraph
+        )
+
+# For email drafts
+        email_prompt = EMAIL_DRAFT_PROMPT.format(
+            language_code=language,
+            context_data=context_str,
+            note=paragraph
         )
 
         if not paragraph or not record_id or not object_name:
@@ -351,5 +366,141 @@ async def summarise_text(request: Request):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/email_draft")
+async def email_draft(request: Request):
+    try:
+        data = await request.json()
+        paragraph = data.get("paragraph")
+        record_id = data.get("record_id")
+        object_name = data.get("object")
+        context = data.get("context")
+        email_type = data.get("email_type")  # e.g., "Follow-up Email"
+        language = data.get("language", "en")
+        context_str = ""
+        if context:
+            context_str = "\n\nContext (all fields):\n" + json.dumps(context, indent=2)
+            print("Queried Context Data:", context_str)  # Print context for debugging
+
+        if not paragraph or not record_id or not object_name or not email_type:
+            raise HTTPException(status_code=400, detail="Missing required fields.")
+
+        # Prepare the prompt for the LLM
+        prompt = f"""
+{EMAIL_DRAFT_PROMPT}
+
+Email Type: {email_type}
+Language Code: {language}
+"""
+
+        # Prepare Groq API call
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        groq_url = "https://api.groq.com/openai/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "llama3-70b-8192",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": prompt.format(
+                        language_code=language,
+                        context_data=context_str,
+                        note=paragraph
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"Generate a {email_type} for CRM record {record_id} ({object_name}) using the above context and note. The email should be in the language and script specified by the language code."
+                }
+            ],
+            "max_tokens": 512,
+            "temperature": 0.5
+        }
+
+        response = requests.post(groq_url, headers=headers, json=payload)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"Groq API error: {response.text}")
+
+        email_draft = response.json()["choices"][0]["message"]["content"]
+        return {"email_draft": email_draft, "context": context_str}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/audio_transcribe")
+async def audio_transcribe(
+    audio: UploadFile = File(...),
+    record_id: str = Form(...),
+    object: str = Form(...),
+    context: str = Form(...),
+    language: str = Form(...),
+    email_type: str = Form(None)
+):
+    import tempfile
+    import whisper
+
+    # Save audio file to temp
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(await audio.read())
+        tmp_path = tmp.name
+
+    # Transcribe using Whisper
+    model = whisper.load_model("base")  # or "small", "medium", etc.
+    result = model.transcribe(tmp_path, language=language if language != "en" else None)
+    transcript = result["text"]
+
+    # Prepare context
+    context_dict = json.loads(context)
+    context_str = "\n\nContext (all fields):\n" + json.dumps(context_dict, indent=2)
+
+    # Prepare LLM prompt
+    if email_type:
+        prompt = EMAIL_DRAFT_PROMPT.format(
+            language_code=language,
+            context_data=context_str,
+            note=transcript
+        )
+        user_content = f"Generate a {email_type} for CRM record {record_id} ({object}) using the above context and note. The email should be in the language and script specified by the language code."
+    else:
+        prompt = SUMMARY_PROMPT.format(
+            language_code=language,
+            context_data=context_str,
+            note=transcript
+        )
+        user_content = f"Summarize the following note for CRM record {record_id} ({object}):\n\nNote:\n{transcript}"
+
+    # Call LLM
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    groq_url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {groq_api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "llama3-70b-8192",
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_content}
+        ],
+        "max_tokens": 512,
+        "temperature": 0.5
+    }
+    response = requests.post(groq_url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail=f"Groq API error: {response.text}")
+
+    llm_result = response.json()["choices"][0]["message"]["content"]
+    result = {"transcript": transcript}
+    if email_type:
+        result["email_draft"] = llm_result
+    else:
+        result["summary"] = llm_result
+    return result
 
 

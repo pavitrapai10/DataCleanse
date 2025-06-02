@@ -17,8 +17,15 @@ const LANGUAGES = [
   { code: 'es', label: 'Spanish', speechCode: 'es-ES' },
   { code: 'fr', label: 'French', speechCode: 'fr-FR' },
   { code: 'de', label: 'German', speechCode: 'de-DE' },
- 
-  // Add more languages as needed
+];
+
+const EMAIL_TYPES = [
+  "Follow-up Email",
+  "Introduction Email",
+  "Thank You Email",
+  "Meeting Request Email",
+  "Proposal/Offer Email",
+  "Re-engagement Email"
 ];
 
 const TextFieldOverlay = ({
@@ -27,7 +34,7 @@ const TextFieldOverlay = ({
   onSave,
   rowId,
   activeTab,
-  context, // <-- added context prop
+  context,
 }) => {
   const [text, setText] = useState(value || '');
   const [summary, setSummary] = useState('');
@@ -35,8 +42,14 @@ const TextFieldOverlay = ({
   const [language, setLanguage] = useState('en');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [showEmailTypeDropdown, setShowEmailTypeDropdown] = useState(false);
+  const [selectedEmailType, setSelectedEmailType] = useState('');
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
   const recognitionRef = useRef(null);
   const langBtnRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Find the correct speech recognition code for the selected language
   const getSpeechLang = () => {
@@ -102,12 +115,77 @@ const TextFieldOverlay = ({
   }
   setLoading(false);
 };
-  const handleEmailDraft = () => alert('Email draft not implemented.');
-  const handleUploadAudio = () => alert('Audio upload not implemented.');
+  const handleEmailDraft = () => {
+    setShowEmailTypeDropdown(true);
+    setEmailDraft('');
+  };
+
+  const handleEmailTypeSelect = async (type) => {
+    setSelectedEmailType(type);
+    setShowEmailTypeDropdown(false);
+    setEmailLoading(true);
+    setEmailDraft('');
+    try {
+      const response = await fetch('http://127.0.0.1:8000/email_draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paragraph: text,
+          record_id: rowId,
+          object: activeTab,
+          context: context,
+          email_type: type,
+          language: language,
+        }),
+      });
+      const data = await response.json();
+      setEmailDraft(data.email_draft || 'No draft returned.');
+    } catch (err) {
+      setEmailDraft('Error fetching email draft.');
+    }
+    setEmailLoading(false);
+  };
 
   const handleSave = () => {
     onSave(rowId, text);
     onClose();
+  };
+
+  const handleUploadAudio = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // Reset file input
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAudioFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAudioLoading(true);
+    setSummary('');
+    setEmailDraft('');
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+      formData.append('record_id', rowId);
+      formData.append('object', activeTab);
+      formData.append('context', JSON.stringify(context));
+      formData.append('language', language);
+      formData.append('email_type', selectedEmailType); // Optional, for email draft
+
+      // Call your backend endpoint for audio transcription and summary/email
+      const response = await fetch('http://127.0.0.1:8000/audio_transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.transcript) setText(data.transcript);
+      if (data.summary) setSummary(data.summary);
+      if (data.email_draft) setEmailDraft(data.email_draft);
+    } catch (err) {
+      setSummary('Error processing audio.');
+    }
+    setAudioLoading(false);
   };
 
   return (
@@ -177,6 +255,30 @@ const TextFieldOverlay = ({
             )}
           </div>
         </div>
+        {/* Email type dropdown */}
+        {showEmailTypeDropdown && (
+          <div className="email-type-dropdown">
+            <div style={{ marginBottom: 6, fontWeight: 500 }}>Choose Email Type:</div>
+            {EMAIL_TYPES.map(type => (
+              <div
+                key={type}
+                className="email-type-option"
+                onClick={() => handleEmailTypeSelect(type)}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  background: selectedEmailType === type ? '#e0e0ff' : '#fff',
+                  borderBottom: '1px solid #eee'
+                }}
+              >
+                {type}
+              </div>
+            ))}
+            <div>
+              <button onClick={() => setShowEmailTypeDropdown(false)} style={{ marginTop: 8 }}>Cancel</button>
+            </div>
+          </div>
+        )}
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
@@ -184,12 +286,19 @@ const TextFieldOverlay = ({
           style={{ width: '100%', marginBottom: 10 }}
           placeholder="Type or paste your note here..."
         />
-        {context && (
-          <div style={{ marginBottom: 10 }}>
-            <strong>Queried Context Data:</strong>
-            <pre style={{ background: "#f6f6f6", padding: 8, borderRadius: 4, maxHeight: 200, overflow: "auto", fontSize: 13 }}>
-              {JSON.stringify(context, null, 2)}
-            </pre>
+        {/* Email draft display */}
+        {emailLoading && <div style={{ margin: '10px 0', color: '#888' }}>Generating email draft...</div>}
+        {emailDraft && (
+          <div style={{
+            background: '#f9f9f9',
+            border: '1px solid #eee',
+            borderRadius: 4,
+            padding: 10,
+            marginBottom: 10,
+            whiteSpace: 'pre-wrap'
+          }}>
+            <strong>{selectedEmailType}:</strong>
+            <div>{emailDraft}</div>
           </div>
         )}
         <div>
@@ -202,6 +311,13 @@ const TextFieldOverlay = ({
           <button onClick={handleSave}>Save</button>
           <button onClick={onClose} style={{ marginLeft: 8 }}>Cancel</button>
         </div>
+        <input
+          type="file"
+          accept="audio/*"
+          style={{ display: 'none' }}
+          ref={fileInputRef}
+          onChange={handleAudioFileChange}
+        />
       </div>
     </div>
   );
