@@ -20,13 +20,17 @@ const LANGUAGES = [
 ];
 
 const EMAIL_TYPES = [
-  "Follow-up Email",
-  "Introduction Email",
-  "Thank You Email",
-  "Meeting Request Email",
-  "Proposal/Offer Email",
-  "Re-engagement Email"
+ "Cold Email Outreach",
+"Follow-Up",
+"Proposal/Information Sharing",
+"Objection Handling",
+"Apology/Problem Resolution",
+"Closing/Won Deal",
+"Closing/Lost Deal",
+"Minutes of Meeting"
 ];
+
+const BASE_URL = "http://127.0.0.1:8000"; // Or your backend URL
 
 const TextFieldOverlay = ({
   value,
@@ -158,35 +162,77 @@ const TextFieldOverlay = ({
     }
   };
 
-  const handleAudioFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setAudioLoading(true);
-    setSummary('');
-    setEmailDraft('');
-    try {
-      const formData = new FormData();
-      formData.append('audio', file);
-      formData.append('record_id', rowId);
-      formData.append('object', activeTab);
-      formData.append('context', JSON.stringify(context));
-      formData.append('language', language);
-      formData.append('email_type', selectedEmailType); // Optional, for email draft
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const validExtensions = ["audio/mpeg", "audio/wav", "audio/x-m4a"];
+      if (validExtensions.includes(file.type) && file.size <= 5 * 1024 * 1024) {
+        setAudioLoading(true);
+        setSummary('');
+        setEmailDraft('');
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("language", language);
+        formData.append("temperature", "0.0");
 
-      // Call your backend endpoint for audio transcription and summary/email
-      const response = await fetch('http://127.0.0.1:8000/audio_transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.transcript) setText(data.transcript);
-      if (data.summary) setSummary(data.summary);
-      if (data.email_draft) setEmailDraft(data.email_draft);
-    } catch (err) {
-      setSummary('Error processing audio.');
+        try {
+          const response = await fetch('http://127.0.0.1:8000/transcribe', {
+            method: "POST",
+            body: formData,
+            // Do NOT set Content-Type header for FormData with fetch!
+          });
+          const data = await response.json();
+          setText(data.text);
+        } catch (error) {
+          setSummary('Error processing audio.');
+        } finally {
+          setAudioLoading(false);
+        }
+      } else {
+        setSummary('Please upload a .mp3, .wav, or .m4a file under 5 MB.');
+      }
     }
-    setAudioLoading(false);
   };
+
+  // const handleAudioFileChange = async (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file) return;
+  //   setAudioLoading(true);
+  //   setSummary('');
+  //   setEmailDraft('');
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('audio', file);
+  //     formData.append('record_id', rowId);
+  //     formData.append('object', activeTab);
+  //     formData.append('context', JSON.stringify(context));
+  //     formData.append('language', language);
+  //     formData.append('email_type', selectedEmailType); // Optional, for email draft
+
+  //     const response = await fetch('http://127.0.0.1:8000/audio_transcribe', {
+  //       method: 'POST',
+  //       body: formData,
+  //     });
+  //     const data = await response.json();
+  //     if (data.transcript) setText(data.transcript);
+  //     if (data.summary) setSummary(data.summary);
+  //     if (data.email_draft) setEmailDraft(data.email_draft);
+
+  //     // Optionally, auto-generate summary if not returned
+  //     if (!data.summary && data.transcript) {
+  //       setText(data.transcript);
+  //       await handleSummarise();
+  //     }
+  //     // Optionally, auto-generate email draft if not returned and email type is selected
+  //     if (!data.email_draft && data.transcript && selectedEmailType) {
+  //       setText(data.transcript);
+  //       await handleEmailTypeSelect(selectedEmailType);
+  //     }
+  //   } catch (err) {
+  //     setSummary('Error processing audio.');
+  //   }
+  //   setAudioLoading(false);
+  // };
 
   return (
     <div className="textfield-overlay right-overlay">
@@ -313,10 +359,10 @@ const TextFieldOverlay = ({
         </div>
         <input
           type="file"
-          accept="audio/*"
+          accept=".mp3,.wav,.m4a,audio/*"
           style={{ display: 'none' }}
           ref={fileInputRef}
-          onChange={handleAudioFileChange}
+          onChange={handleFileUpload}
         />
       </div>
     </div>

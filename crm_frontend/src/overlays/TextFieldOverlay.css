@@ -21,6 +21,9 @@
   padding: 24px 28px 24px 28px;
   display: flex;
   flex-direction: column;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .right-content {
   border-top-left-radius: 16px;

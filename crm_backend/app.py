@@ -8,13 +8,17 @@ from fastapi.middleware.cors import CORSMiddleware
 import simple_salesforce
 import requests
 from prompts import SUMMARY_PROMPT, EMAIL_DRAFT_PROMPT
+from fastapi.responses import JSONResponse
+import shutil
+import tempfile
+import groq
 
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["http://localhost:3000"],  # Allows all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
@@ -76,6 +80,11 @@ class Event(BaseModel):
     Subject: str
     StartDateTime: str
     EndDateTime: str
+
+class TranscriptionResponse(BaseModel):
+    text: str
+    filename: str
+    language: str
 
 # Helper function to remove 'attributes' from records
 
@@ -169,7 +178,7 @@ def write_nec():
     return records
 
 @app.options("/{rest_of_path:path}")
-async def preflight_handler():
+async def preflight_handler(rest_of_path: str):
     return {}
 @app.get("/")
 async def pinger():
@@ -433,74 +442,53 @@ Language Code: {language}
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/audio_transcribe")
-async def audio_transcribe(
-    audio: UploadFile = File(...),
-    record_id: str = Form(...),
-    object: str = Form(...),
-    context: str = Form(...),
-    language: str = Form(...),
-    email_type: str = Form(None)
+ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a"}
+
+def validate_audio_file(filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
+
+groq_client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+@app.post("/transcribe", response_model=TranscriptionResponse)
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = Form("en"),
+    prompt: str = Form(None),
+    temperature: float = Form(0.0),
 ):
-    import tempfile
-    import whisper
-
-    # Save audio file to temp
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(await audio.read())
-        tmp_path = tmp.name
-
-    # Transcribe using Whisper
-    model = whisper.load_model("base")  # or "small", "medium", etc.
-    result = model.transcribe(tmp_path, language=language if language != "en" else None)
-    transcript = result["text"]
-
-    # Prepare context
-    context_dict = json.loads(context)
-    context_str = "\n\nContext (all fields):\n" + json.dumps(context_dict, indent=2)
-
-    # Prepare LLM prompt
-    if email_type:
-        prompt = EMAIL_DRAFT_PROMPT.format(
-            language_code=language,
-            context_data=context_str,
-            note=transcript
+    if not validate_audio_file(file.filename):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
         )
-        user_content = f"Generate a {email_type} for CRM record {record_id} ({object}) using the above context and note. The email should be in the language and script specified by the language code."
-    else:
-        prompt = SUMMARY_PROMPT.format(
-            language_code=language,
-            context_data=context_str,
-            note=transcript
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            shutil.copyfileobj(file.file, temp_file)
+            temp_path = temp_file.name
+
+        with open(temp_path, "rb") as audio_file:
+            transcription = groq_client.audio.transcriptions.create(
+                file=(file.filename, audio_file.read()),
+                model="whisper-large-v3-turbo",
+                prompt=prompt,
+                response_format="json",
+                language=language,
+                temperature=temperature
+            )
+
+        os.unlink(temp_path)
+
+        return TranscriptionResponse(
+            text=transcription.text,
+            filename=file.filename,
+            language=language
         )
-        user_content = f"Summarize the following note for CRM record {record_id} ({object}):\n\nNote:\n{transcript}"
 
-    # Call LLM
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    groq_url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {groq_api_key}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "llama3-70b-8192",
-        "messages": [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": user_content}
-        ],
-        "max_tokens": 512,
-        "temperature": 0.5
-    }
-    response = requests.post(groq_url, headers=headers, json=payload)
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Groq API error: {response.text}")
-
-    llm_result = response.json()["choices"][0]["message"]["content"]
-    result = {"transcript": transcript}
-    if email_type:
-        result["email_draft"] = llm_result
-    else:
-        result["summary"] = llm_result
-    return result
+    except Exception as e:
+        if 'temp_path' in locals() and os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
